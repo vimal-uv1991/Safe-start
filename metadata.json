@@ -1,0 +1,6 @@
+{
+  "name": "Safe Start",
+  "description": "Tamil Nadu Government Newborn Identity Custody & Verification System portal for hospital registrars and medical council supervisory boards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
