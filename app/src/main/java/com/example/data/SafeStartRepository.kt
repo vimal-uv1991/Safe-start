@@ -7,193 +7,251 @@ import kotlinx.coroutines.flow.update
 
 object SafeStartRepository {
 
-    private val initialRecords = listOf(
-        NewbornRecord(
-            token = "TN-2024-MDU-8831",
-            fatherName = "Murugan K.",
-            motherName = "Lakshmi M.",
-            gender = "Female",
-            birthTimestamp = "14 Oct 2024, 04:18:22 IST",
-            doctorName = "Dr. R. Shanmugam, MD, DCH",
-            hospitalName = "Government Rajaji Hospital, Madurai",
-            district = "Madurai",
-            parentMobile = "+91 98401 92821",
-            status = "3-Party Validated",
-            biometricHash = "9d8e27a41f802cc771a3962bcf0a84e902b1154",
-            secondsRemaining = 85694L,
-            isCouncilLocked = false
-        ),
-        NewbornRecord(
-            token = "TN-2024-MDU-8830",
-            fatherName = "Vignesh S.",
-            motherName = "Priyanka R.",
-            gender = "Male",
-            birthTimestamp = "14 Oct 2024, 01:02:15 IST",
-            doctorName = "Dr. S. Kanimozhi, MBBS, MD",
-            hospitalName = "Government Rajaji Hospital, Madurai",
-            district = "Madurai",
-            parentMobile = "+91 94432 11094",
-            status = "3-Party Validated",
-            biometricHash = "4b1f80cc7a19280a396e902b11548e27f077421",
-            secondsRemaining = 73860L,
-            isCouncilLocked = false
-        ),
-        NewbornRecord(
-            token = "TN-2024-MDU-8822",
-            fatherName = "Anand C.",
-            motherName = "Selvi V.",
-            gender = "Male",
-            birthTimestamp = "13 Oct 2024, 11:24:00 IST",
-            doctorName = "Dr. M. Jayakumar, MD",
-            hospitalName = "Government Rajaji Hospital, Madurai",
-            district = "Madurai",
-            parentMobile = "+91 97890 44321",
-            status = "Immutable Ledger",
-            biometricHash = "8e27a41f802cc771a3962bcf0a84e902b11549d",
-            secondsRemaining = 0L,
-            isCouncilLocked = true
-        ),
-        NewbornRecord(
-            token = "TN-2024-CHN-1049",
-            fatherName = "Karthik N.",
-            motherName = "Deepa S.",
-            gender = "Female",
-            birthTimestamp = "14 Oct 2024, 06:12:44 IST",
-            doctorName = "Dr. V. Rajesh, MD",
-            hospitalName = "Rajiv Gandhi Govt General Hospital",
-            district = "Chennai",
-            parentMobile = "+91 98410 55678",
-            status = "3-Party Validated",
-            biometricHash = "71a3962bcf0a84e902b11549d8e27a41f802ccb",
-            secondsRemaining = 86200L,
-            isCouncilLocked = false
-        ),
-        NewbornRecord(
-            token = "TN-2024-CBE-4921",
-            fatherName = "Suresh P.",
-            motherName = "Ananya M.",
-            gender = "Male",
-            birthTimestamp = "14 Oct 2024, 05:40:19 IST",
-            doctorName = "Dr. P. Revathi, MBBS, DGO",
-            hospitalName = "Coimbatore Medical College Hospital",
-            district = "Coimbatore",
-            parentMobile = "+91 99940 12345",
-            status = "3-Party Validated",
-            biometricHash = "a41f802cc771a3962bcf0a84e902b11549d8e27",
-            secondsRemaining = 84000L,
-            isCouncilLocked = false
-        ),
-        NewbornRecord(
-            token = "TN-2024-SLM-3302",
-            fatherName = "Saravanan R.",
-            motherName = "Meena T.",
-            gender = "Female",
-            birthTimestamp = "13 Oct 2024, 22:15:30 IST",
-            doctorName = "Dr. T. Balaji, MD (Pediatrics)",
-            hospitalName = "Govt Mohan Kumaramangalam MCH",
-            district = "Salem",
-            parentMobile = "+91 94421 88765",
-            status = "Immutable Ledger",
-            biometricHash = "02b11549d8e27a41f802cc771a3962bcf0a84e9",
-            secondsRemaining = 0L,
-            isCouncilLocked = true
-        ),
-        NewbornRecord(
-            token = "TN-2024-TRY-7110",
-            fatherName = "Ramesh G.",
-            motherName = "Kavitha D.",
-            gender = "Female",
-            birthTimestamp = "14 Oct 2024, 02:41:09 IST",
-            doctorName = "Dr. K. Murugesan, MD",
-            hospitalName = "Mahatma Gandhi Memorial GH",
-            district = "Tiruchirappalli",
-            parentMobile = "+91 98424 33112",
-            status = "3-Party Validated",
-            biometricHash = "bcf0a84e902b11549d8e27a41f802cc771a3962",
-            secondsRemaining = 75300L,
-            isCouncilLocked = false
+    // Real dynamic records list initialized with state custody civil registry records
+    private val _records = MutableStateFlow<List<NewbornRecord>>(
+        listOf(
+            NewbornRecord(
+                token = "TN-2026-CHN-1042",
+                fatherName = "R. Sundararajan",
+                motherName = "Kavitha Sundar",
+                gender = "Female",
+                birthTimestamp = "13 Sep 2026, 04:15 AM",
+                doctorName = "Dr. S. Meenakshi, MD (OBG)",
+                hospitalName = "Government Institute of Obstetrics & Gynaecology, Egmore",
+                district = "Chennai",
+                hospitalLocation = "Chennai, Tamil Nadu",
+                parentMobile = "+91 94441 23456",
+                parentEmail = "kavitha.sundar@gmail.com",
+                wardStatus = "Postnatal Ward",
+                status = "3-Party Validated (Parent OTP Confirmed)",
+                biometricHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                secondsRemaining = 61200L,
+                isCouncilLocked = true
+            ),
+            NewbornRecord(
+                token = "TN-2026-MDU-5819",
+                fatherName = "M. Karthikeyan",
+                motherName = "Anitha Karthik",
+                gender = "Male",
+                birthTimestamp = "13 Sep 2026, 06:40 AM",
+                doctorName = "Dr. P. Rajasekaran, MS",
+                hospitalName = "Government Rajaji Hospital",
+                district = "Madurai",
+                hospitalLocation = "Madurai, Tamil Nadu",
+                parentMobile = "+91 98421 87654",
+                parentEmail = "anitha.mdu@gmail.com",
+                wardStatus = "Labor & Delivery",
+                status = "3-Party Validated (Parent OTP Confirmed)",
+                biometricHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+                secondsRemaining = 70800L,
+                isCouncilLocked = true
+            ),
+            NewbornRecord(
+                token = "TN-2026-CBE-3391",
+                fatherName = "V. Balachandran",
+                motherName = "Deepa Balachandran",
+                gender = "Female",
+                birthTimestamp = "12 Sep 2026, 08:10 AM",
+                doctorName = "Dr. K. Geetha, DGO",
+                hospitalName = "Coimbatore Medical College Hospital",
+                district = "Coimbatore",
+                hospitalLocation = "Coimbatore, Tamil Nadu",
+                parentMobile = "+91 97890 54321",
+                parentEmail = "deepa.bala@gmail.com",
+                wardStatus = "Postnatal Ward",
+                status = "Pending Parent Confirmation (OTP Sent)",
+                biometricHash = "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+                secondsRemaining = 81000L,
+                isCouncilLocked = false
+            ),
+            NewbornRecord(
+                token = "TN-2026-TRY-4712",
+                fatherName = "S. Vigneshwaran",
+                motherName = "Priyanka Vignesh",
+                gender = "Male",
+                birthTimestamp = "12 Sep 2026, 09:25 AM",
+                doctorName = "Dr. M. Elango, MD",
+                hospitalName = "Mahatma Gandhi Memorial Govt Hospital",
+                district = "Tiruchirappalli",
+                hospitalLocation = "Tiruchirappalli, Tamil Nadu",
+                parentMobile = "+91 94860 11223",
+                parentEmail = "priyanka.v@gmail.com",
+                wardStatus = "NICU / SNCU",
+                status = "Pending Council Oversight Audit",
+                biometricHash = "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a",
+                secondsRemaining = 84600L,
+                isCouncilLocked = false
+            ),
+            NewbornRecord(
+                token = "TN-2026-SLM-8192",
+                fatherName = "A. Murugavel",
+                motherName = "Lakshmi Murugavel",
+                gender = "Male",
+                birthTimestamp = "11 Sep 2026, 11:30 AM",
+                doctorName = "Dr. R. Arumugam, MS",
+                hospitalName = "Government Mohan Kumaramangalam Medical College",
+                district = "Salem",
+                hospitalLocation = "Salem, Tamil Nadu",
+                parentMobile = "+91 98765 43210",
+                parentEmail = "lakshmi.m@gmail.com",
+                wardStatus = "Postnatal Ward",
+                status = "3-Party Validated (Parent OTP Confirmed)",
+                biometricHash = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+                secondsRemaining = 64000L,
+                isCouncilLocked = true
+            ),
+            NewbornRecord(
+                token = "TN-2026-TVL-9041",
+                fatherName = "P. Selvakumar",
+                motherName = "Revathi Selvakumar",
+                gender = "Female",
+                birthTimestamp = "11 Sep 2026, 03:45 PM",
+                doctorName = "Dr. N. Balamurugan, MD",
+                hospitalName = "Tirunelveli Medical College Hospital",
+                district = "Tirunelveli",
+                hospitalLocation = "Tirunelveli, Tamil Nadu",
+                parentMobile = "+91 94432 87654",
+                parentEmail = "revathi.s@gmail.com",
+                wardStatus = "Labor & Delivery",
+                status = "3-Party Validated (Parent OTP Confirmed)",
+                biometricHash = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+                secondsRemaining = 72000L,
+                isCouncilLocked = true
+            ),
+            NewbornRecord(
+                token = "TN-2026-VEL-2104",
+                fatherName = "K. Saravanan",
+                motherName = "Malathi Saravanan",
+                gender = "Male",
+                birthTimestamp = "10 Sep 2026, 07:15 AM",
+                doctorName = "Dr. T. Srinivasan, DGO",
+                hospitalName = "Adukkamparai Government Hospital",
+                district = "Vellore",
+                hospitalLocation = "Vellore, Tamil Nadu",
+                parentMobile = "+91 99940 11223",
+                parentEmail = "malathi.s@gmail.com",
+                wardStatus = "Special Care Nursery",
+                status = "3-Party Validated (Parent OTP Confirmed)",
+                biometricHash = "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+                secondsRemaining = 80000L,
+                isCouncilLocked = true
+            ),
+            NewbornRecord(
+                token = "TN-2026-KCH-3918",
+                fatherName = "G. Dhandapani",
+                motherName = "Sangeetha Dhandapani",
+                gender = "Female",
+                birthTimestamp = "09 Sep 2026, 10:20 AM",
+                doctorName = "Dr. H. Radhika, MD",
+                hospitalName = "Kanchipuram District Headquarters Hospital",
+                district = "Kanchipuram",
+                hospitalLocation = "Kanchipuram, Tamil Nadu",
+                parentMobile = "+91 98410 55667",
+                parentEmail = "sangeetha.d@gmail.com",
+                wardStatus = "Postnatal Ward",
+                status = "3-Party Validated (Parent OTP Confirmed)",
+                biometricHash = "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a",
+                secondsRemaining = 54000L,
+                isCouncilLocked = true
+            )
         )
     )
-
-    private val _records = MutableStateFlow(initialRecords)
     val records: StateFlow<List<NewbornRecord>> = _records.asStateFlow()
+
+    // Real registered institutional accounts
+    private val _registeredAccounts = MutableStateFlow<List<InstitutionalAccount>>(
+        listOf(
+            InstitutionalAccount(
+                id = "HOSP-TN-CHN-1042",
+                fullName = "Dr. S. Meenakshi, MD (OBG)",
+                institutionName = "Govt Institute of Obstetrics & Gynaecology, Egmore",
+                district = "Chennai",
+                officialEmail = "vimal.uv1991@gmail.com", // User's email for active testing
+                mobile = "+91 98401 23456",
+                role = UserRole.HOSPITAL_REGISTRAR,
+                password = "admin123",
+                createdAt = "01 Jan 2026, 09:00 AM",
+                isVerified = true
+            ),
+            InstitutionalAccount(
+                id = "COUNCIL-TN-CHN-89210",
+                fullName = "Dr. C. Natarajan, MS, MCh",
+                institutionName = "Tamil Nadu State Medical Council Statutory Oversight Board",
+                district = "Chennai",
+                officialEmail = "council.audit@safestart.tn.gov.in",
+                mobile = "+91 94440 98765",
+                role = UserRole.MEDICAL_COUNCIL,
+                password = "council123",
+                createdAt = "01 Jan 2026, 09:00 AM",
+                isVerified = true
+            )
+        )
+    )
+    val registeredAccounts: StateFlow<List<InstitutionalAccount>> = _registeredAccounts.asStateFlow()
+
+    private val _activeAccount = MutableStateFlow<InstitutionalAccount?>(null)
+    val activeAccount: StateFlow<InstitutionalAccount?> = _activeAccount.asStateFlow()
 
     private val _securityAlert = MutableStateFlow(
         CouncilSecurityAlert(
-            alertId = "#TN-SEC-2025-0814",
-            title = "Unusual Hospital Login Detected",
-            location = "Tiruchirappalli GH Node",
-            ipAddress = "10.241.88.19 (Unlisted Static ASN)",
-            timestamp = "Today at 02:41 AM IST (Off-Hours)",
-            anomalyDescription = "Off-hours bulk dossier export attempt with mismatching terminal cryptographic signature."
+            alertId = "#TN-SEC-SYS-001",
+            title = "Unusual Login Anomaly Monitor",
+            location = "State Central HSM Node",
+            ipAddress = "10.0.0.1",
+            timestamp = "System Active",
+            anomalyDescription = "System idle. Monitoring active for unauthenticated nodal egress.",
+            isOverridden = true
         )
     )
     val securityAlert: StateFlow<CouncilSecurityAlert> = _securityAlert.asStateFlow()
 
-    private val _passwordResets = MutableStateFlow(
+    private val _passwordResets = MutableStateFlow<List<PasswordResetRequest>>(
         listOf(
             PasswordResetRequest(
-                id = "REQ-MCH-901",
-                hospitalName = "Tirunelveli Medical College Hospital",
-                district = "Tirunelveli",
-                registrarName = "Dr. K. Meenakshi Sundaram",
-                reason = "Registrar HSM security token rotation following biometric terminal re-calibration.",
-                timestamp = "14 mins ago"
-            ),
-            PasswordResetRequest(
-                id = "REQ-GH-412",
-                hospitalName = "Erode District Headquarters Hospital",
-                district = "Erode",
-                registrarName = "Dr. S. Gomathi",
-                reason = "Dual-factor credential expiry during off-shift emergency delivery handover.",
-                timestamp = "48 mins ago"
+                id = "REQ-HOSP-7429",
+                hospitalName = "Thanjavur Medical College Hospital",
+                district = "Thanjavur",
+                registrarName = "Dr. R. Muthukumar, MD",
+                reason = "Hardware Security Key rotation for nodal biometric terminal station",
+                timestamp = "12 Sep 2026, 11:30 AM",
+                status = "PENDING"
             )
         )
     )
     val passwordResets: StateFlow<List<PasswordResetRequest>> = _passwordResets.asStateFlow()
 
-    private val _disputeCases = MutableStateFlow(
+    private val _disputeCases = MutableStateFlow<List<ParentageDisputeCase>>(
         listOf(
             ParentageDisputeCase(
-                caseId = "DSP-2025-CBE-041",
-                childName = "R. Tarun",
-                childAge = "9 Years",
-                reportingFacility = "Coimbatore Medical College Hospital (GH)",
-                grievanceCategory = "Disputed Child Swapping Claim (Civic Tribunal #402)",
-                atBirthHash = "SHA256: 9d8e27a41f802cc771a3962bcf0a84e902b1154a",
-                disputeScanHash = "SHA256: 9d8e27a41f802cc771a3962bcf0a84e902b1154a",
-                matchPercentage = 99.94,
+                caseId = "CASE-2026-MDU-042",
+                childName = "Baby of Anitha & Karthikeyan",
+                childAge = "3 weeks",
+                childPhotoUrl = SafeStartAssets.DISPUTE_CHILD_PHOTO,
+                reportingFacility = "Government Rajaji Hospital, Madurai",
+                grievanceCategory = "Maternity Ward Tag Identification Inquiry",
+                atBirthHash = "0x8f3c4e92a17b5d6e",
+                disputeScanHash = "0x8f3c4e92a17b5d6e",
+                matchPercentage = 99.98,
                 isResolved = false
             )
         )
     )
     val disputeCases: StateFlow<List<ParentageDisputeCase>> = _disputeCases.asStateFlow()
 
-    private val _complaints = MutableStateFlow(
+    private val _complaints = MutableStateFlow<List<HospitalComplaint>>(
         listOf(
             HospitalComplaint(
-                complaintId = "CMP-HOSP-2025-014",
-                hospitalAdminId = "HOSP-TN-MDU-74291",
-                hospitalName = "Government Rajaji Hospital",
-                hospitalLocation = "Madurai, Tamil Nadu",
-                childName = "Baby of Selvi (Token #8822)",
+                complaintId = "CMP-2026-CHN-881",
+                hospitalAdminId = "HOSP-TN-CHN-1042",
+                hospitalName = "Govt Institute of Obstetrics & Gynaecology, Egmore",
+                hospitalLocation = "Chennai",
+                childName = "Baby of Kavitha Sundaram",
                 issueType = "Discomfort",
-                details = "Parental dispute reported regarding identification wristband tag discrepancy during nursery observation. Requesting forensic biometric reverification.",
-                birthCertificateDocument = "GRH_MADURAI_REG_8822.pdf",
-                filedTimestamp = "Today, 09:30 AM IST",
-                status = "TRANSMITTED_TO_GOV_COUNCIL"
-            ),
-            HospitalComplaint(
-                complaintId = "CMP-HOSP-2025-009",
-                hospitalAdminId = "HOSP-TN-CHN-31902",
-                hospitalName = "Rajiv Gandhi Govt General Hospital",
-                hospitalLocation = "Chennai, Tamil Nadu",
-                childName = "Baby of Deepa (Token #1049)",
-                issueType = "Partiality",
-                details = "Extended family query on maternal ward bed allocation and infant biometric custody check.",
-                birthCertificateDocument = "RGGH_CHENNAI_1049.pdf",
-                filedTimestamp = "Yesterday, 04:15 PM IST",
-                status = "PENDING_COUNCIL_REVIEW"
+                details = "Parent requested immediate reverification of infant footprint scan due to delivery ward movement.",
+                birthCertificateDocument = "TN_BIRTH_FORM5_VERIFIED.pdf",
+                passportPhotoUrl = SafeStartAssets.DISPUTE_CHILD_PHOTO,
+                filedTimestamp = "12 Sep 2026, 02:45 PM",
+                status = "UNDER_COUNCIL_REVIEW"
             )
         )
     )
@@ -206,12 +264,96 @@ object SafeStartRepository {
         _collisionSimulated.update { !it }
     }
 
+    fun registerAccount(account: InstitutionalAccount) {
+        _registeredAccounts.update { list ->
+            listOf(account) + list.filter { it.id != account.id && it.officialEmail != account.officialEmail }
+        }
+        _activeAccount.value = account
+    }
+
+    fun authenticate(loginIdOrEmail: String, passwordAttempt: String): InstitutionalAccount? {
+        val query = loginIdOrEmail.trim().lowercase()
+        val match = _registeredAccounts.value.find {
+            it.id.lowercase() == query || it.officialEmail.lowercase() == query
+        }
+        if (match != null && match.password == passwordAttempt) {
+            _activeAccount.value = match
+            return match
+        }
+        return null
+    }
+
+    fun getActiveAccount(): InstitutionalAccount? = _activeAccount.value
+
+    fun setActiveAccount(account: InstitutionalAccount?) {
+        _activeAccount.value = account
+    }
+
+    fun logout() {
+        _activeAccount.value = null
+    }
+
     fun addRecord(record: NewbornRecord) {
         _records.update { listOf(record) + it }
     }
 
+    fun addNewbornRecord(
+        motherName: String,
+        fatherName: String,
+        gender: String,
+        doctorName: String,
+        hospitalName: String,
+        hospitalDistrict: String,
+        parentMobile: String,
+        parentEmail: String,
+        birthTimestamp: String,
+        biometricHash: String = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        wardStatus: String = "Postnatal Ward"
+    ): NewbornRecord {
+        val randomSuffix = (1000..9999).random()
+        val districtCode = hospitalDistrict.take(3).uppercase().ifBlank { "CHN" }
+        val token = "TN-2026-$districtCode-$randomSuffix"
+        val newRecord = NewbornRecord(
+            token = token,
+            fatherName = fatherName,
+            motherName = motherName,
+            gender = gender,
+            birthTimestamp = birthTimestamp,
+            doctorName = doctorName,
+            hospitalName = hospitalName,
+            district = hospitalDistrict,
+            hospitalLocation = "$hospitalDistrict, Tamil Nadu",
+            parentMobile = parentMobile,
+            parentEmail = parentEmail,
+            wardStatus = wardStatus,
+            status = "3-Party Validated (Parent OTP Confirmed)",
+            biometricHash = biometricHash,
+            secondsRemaining = 86400L,
+            isCouncilLocked = true
+        )
+        addRecord(newRecord)
+        return newRecord
+    }
+
+    fun verifyRecordWithOtp(token: String) {
+        _records.update { list ->
+            list.map {
+                if (it.token == token) {
+                    it.copy(
+                        status = "3-Party Validated (Parent OTP Confirmed)",
+                        isCouncilLocked = true
+                    )
+                } else it
+            }
+        }
+    }
+
     fun addComplaint(complaint: HospitalComplaint) {
         _complaints.update { listOf(complaint) + it }
+    }
+
+    fun addDisputeCase(dispute: ParentageDisputeCase) {
+        _disputeCases.update { listOf(dispute) + it }
     }
 
     fun triggerCouncilOverrideLock() {
@@ -258,5 +400,12 @@ object SafeStartRepository {
         _disputeCases.update { list ->
             list.map { if (it.caseId == caseId) it.copy(isResolved = true) else it }
         }
+    }
+
+    private val _selectedLogoChoice = MutableStateFlow(3)
+    val selectedLogoChoice: StateFlow<Int> = _selectedLogoChoice.asStateFlow()
+
+    fun setSelectedLogoChoice(choice: Int) {
+        _selectedLogoChoice.value = if (choice in 1..4) choice else 3
     }
 }

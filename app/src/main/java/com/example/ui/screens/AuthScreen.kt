@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,8 +30,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.*
+import com.example.network.ResendEmailService
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -45,31 +48,30 @@ fun AuthScreen(
     currentRole: UserRole,
     onRoleSelected: (UserRole) -> Unit,
     onLoginSuccess: (UserRole) -> Unit,
+    onNavigateToDashboard: () -> Unit = {},
+    onNavigateToRegistry: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var authMode by remember { mutableStateOf(AuthMode.LOGIN) }
 
     // Login state
     var selectedRole by remember { mutableStateOf(currentRole) }
-    var loginId by remember {
-        mutableStateOf(
-            if (currentRole == UserRole.HOSPITAL_REGISTRAR) "HOSP-TN-MDU-74291" else "COUNCIL-TN-CHN-89210"
-        )
-    }
-    var loginPassword by remember { mutableStateOf("GovtTN@Pass2026") }
+    var loginId by remember { mutableStateOf("") }
+    var loginPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var captchaCode by remember { mutableStateOf("8 W Y 4 2 K") }
     var captchaInput by remember { mutableStateOf("") }
 
     // Forgot Password state
     var fpRole by remember { mutableStateOf(UserRole.HOSPITAL_REGISTRAR) }
-    var fpHospitalName by remember { mutableStateOf("Government Rajaji Hospital") }
-    var fpHospitalLocation by remember { mutableStateOf("Madurai, Tamil Nadu") }
-    var fpAdminId by remember { mutableStateOf("HOSP-TN-MDU-74291") }
-    var fpPhone by remember { mutableStateOf("+91 94420 18291") }
-    var fpEmail by remember { mutableStateOf("admin.grh@tn.gov.in") }
-    var fpReason by remember { mutableStateOf("Biometric terminal security token recalibration and off-hours credential rotation.") }
+    var fpHospitalName by remember { mutableStateOf("") }
+    var fpHospitalLocation by remember { mutableStateOf("") }
+    var fpAdminId by remember { mutableStateOf("") }
+    var fpPhone by remember { mutableStateOf("") }
+    var fpEmail by remember { mutableStateOf("vimal.uv1991@gmail.com") }
+    var fpReason by remember { mutableStateOf("") }
     var fpSubmittedRequestId by remember { mutableStateOf<String?>(null) }
     var fpApprovalTokenInput by remember { mutableStateOf("") }
     var fpNewPassword by remember { mutableStateOf("") }
@@ -78,30 +80,32 @@ fun AuthScreen(
     // Account Creation state
     var regRole by remember { mutableStateOf(UserRole.HOSPITAL_REGISTRAR) }
     // Hospital Admin Fields
-    var regAdminName by remember { mutableStateOf("Dr. K. Anbazhagan, MBBS") }
-    var regHospitalName by remember { mutableStateOf("Government Rajaji Hospital") }
-    var regHospitalLocation by remember { mutableStateOf("Madurai, Tamil Nadu") }
-    var regPhone by remember { mutableStateOf("+91 94420 18291") }
-    var regEmail by remember { mutableStateOf("admin.grh@tn.gov.in") }
-    var regPassword by remember { mutableStateOf("Secure@Pass2026") }
-    var regConfirmPassword by remember { mutableStateOf("Secure@Pass2026") }
-    var regGeneratedId by remember { mutableStateOf("HOSP-TN-MDU-74291") }
+    var regAdminName by remember { mutableStateOf("") }
+    var regHospitalName by remember { mutableStateOf("") }
+    var regHospitalLocation by remember { mutableStateOf("") }
+    var regPhone by remember { mutableStateOf("") }
+    var regEmail by remember { mutableStateOf("vimal.uv1991@gmail.com") }
+    var regPassword by remember { mutableStateOf("") }
+    var regConfirmPassword by remember { mutableStateOf("") }
+    var regGeneratedId by remember { mutableStateOf("HOSP-TN-${(1000..9999).random()}") }
     var regVerificationCodeSent by remember { mutableStateOf(false) }
-    var regGeneratedCode by remember { mutableStateOf("839201") }
+    var regGeneratedCode by remember { mutableStateOf("") }
     var regEnteredCode by remember { mutableStateOf("") }
+    var isSendingRegOtp by remember { mutableStateOf(false) }
 
     // Medical Council Fields
-    var councilOfficerName by remember { mutableStateOf("Dr. S. Thangapandian, MD") }
-    var councilDept by remember { mutableStateOf("Directorate of Public Health & Preventive Medicine") }
-    var councilLocation by remember { mutableStateOf("DMS Complex, Teynampet, Chennai") }
-    var councilPhone by remember { mutableStateOf("+91 98401 55667") }
-    var councilEmail by remember { mutableStateOf("council.officer@tn.gov.in") }
-    var councilPassword by remember { mutableStateOf("CouncilSecure@2026") }
-    var councilConfirmPassword by remember { mutableStateOf("CouncilSecure@2026") }
-    var councilGeneratedId by remember { mutableStateOf("COUNCIL-TN-CHN-89210") }
+    var councilOfficerName by remember { mutableStateOf("") }
+    var councilDept by remember { mutableStateOf("") }
+    var councilLocation by remember { mutableStateOf("") }
+    var councilPhone by remember { mutableStateOf("") }
+    var councilEmail by remember { mutableStateOf("vimal.uv1991@gmail.com") }
+    var councilPassword by remember { mutableStateOf("") }
+    var councilConfirmPassword by remember { mutableStateOf("") }
+    var councilGeneratedId by remember { mutableStateOf("COUNCIL-TN-${(1000..9999).random()}") }
     var councilVerificationCodeSent by remember { mutableStateOf(false) }
-    var councilGeneratedCode by remember { mutableStateOf("741920") }
+    var councilGeneratedCode by remember { mutableStateOf("") }
     var councilEnteredCode by remember { mutableStateOf("") }
+    var isSendingCouncilOtp by remember { mutableStateOf(false) }
 
     // Created Account Confirmation Dialog
     var showAccountCreatedModal by remember { mutableStateOf(false) }
@@ -258,7 +262,7 @@ fun AuthScreen(
                         onSelectIndex = { index ->
                             selectedRole = if (index == 0) UserRole.MEDICAL_COUNCIL else UserRole.HOSPITAL_REGISTRAR
                             onRoleSelected(selectedRole)
-                            loginId = if (index == 0) "COUNCIL-TN-CHN-89210" else "HOSP-TN-MDU-74291"
+                            loginId = ""
                         }
                     )
 
@@ -275,43 +279,71 @@ fun AuthScreen(
                         isGreenVariant = (selectedRole == UserRole.HOSPITAL_REGISTRAR)
                     )
 
-                    // SECONDARY / QUICK-SELECT DEMO CARDS (TWO-COLUMN GRID)
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "QUICK-SELECT DEMO CREDENTIALS",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GovTextSecondary,
-                            letterSpacing = 0.5.sp
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // REAL REGISTERED ACCOUNTS STATUS
+                    val registeredAccountsList by SafeStartRepository.registeredAccounts.collectAsState()
+                    val accountsForRole = registeredAccountsList.filter { it.role == selectedRole }
+
+                    if (accountsForRole.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "REGISTERED INSTITUTIONAL TERMINALS (${accountsForRole.size})",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = GovTextSecondary,
+                                letterSpacing = 0.5.sp
+                            )
+                            accountsForRole.forEach { acc ->
+                                Surface(
+                                    color = if (loginId == acc.id) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, if (loginId == acc.id) GovDeepGreen else GovBorderLight),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            loginId = acc.id
+                                            loginPassword = acc.password
+                                            captchaInput = captchaCode.replace(" ", "")
+                                            selectedRole = acc.role
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column {
+                                            Text(acc.fullName, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                                            Text("${acc.institutionName} • ${acc.id}", fontSize = 11.sp, color = Color(0xFF475569))
+                                        }
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = if (loginId == acc.id) GovDeepGreen else Color(0xFF94A3B8),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Surface(
+                            color = Color(0xFFF8FAFC),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            GovQuickSelectCard(
-                                title = "Govt Medical Council",
-                                subtext = "COUNCIL-TN-CHN-89210",
-                                icon = Icons.Default.AccountBalance,
-                                isSelected = selectedRole == UserRole.MEDICAL_COUNCIL,
-                                onClick = {
-                                    selectedRole = UserRole.MEDICAL_COUNCIL
-                                    onRoleSelected(UserRole.MEDICAL_COUNCIL)
-                                    loginId = "COUNCIL-TN-CHN-89210"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            GovQuickSelectCard(
-                                title = "Hospital Admin",
-                                subtext = "HOSP-TN-MDU-74291",
-                                icon = Icons.Default.LocalHospital,
-                                isSelected = selectedRole == UserRole.HOSPITAL_REGISTRAR,
-                                onClick = {
-                                    selectedRole = UserRole.HOSPITAL_REGISTRAR
-                                    onRoleSelected(UserRole.HOSPITAL_REGISTRAR)
-                                    loginId = "HOSP-TN-MDU-74291"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = GovTextSecondary, modifier = Modifier.size(18.dp))
+                                Text(
+                                    text = "No demo data. Use 'CREATE FIRST-TIME LOGIN ACCOUNT' below to register and verify via Resend API.",
+                                    fontSize = 11.sp,
+                                    color = GovTextSecondary
+                                )
+                            }
                         }
                     }
 
@@ -450,9 +482,26 @@ fun AuthScreen(
                                     "LOG IN TO HOSPITAL REGISTRY PORTAL",
                                 icon = Icons.Default.VerifiedUser,
                                 onClick = {
-                                    successToastMsg = "SECURE SESSION ESTABLISHED" to "Authenticated as ${if (selectedRole == UserRole.MEDICAL_COUNCIL) "Government Medical Council" else "Hospital Admin"}. TLS 1.3 Node Verified."
-                                    onRoleSelected(selectedRole)
-                                    onLoginSuccess(selectedRole)
+                                    val registered = SafeStartRepository.registeredAccounts.value
+                                    if (loginId.isBlank()) {
+                                        Toast.makeText(context, "Please enter your State Registration ID or Official Email", Toast.LENGTH_SHORT).show()
+                                        return@GovPrimaryButton
+                                    }
+                                    if (loginPassword.isBlank()) {
+                                        Toast.makeText(context, "Please enter your password", Toast.LENGTH_SHORT).show()
+                                        return@GovPrimaryButton
+                                    }
+                                    val matchedAccount = SafeStartRepository.authenticate(loginId, loginPassword)
+                                    if (matchedAccount != null) {
+                                        successToastMsg = "SECURE SESSION ESTABLISHED" to "Authenticated as ${matchedAccount.fullName} (${matchedAccount.institutionName}). Node Verified."
+                                        onRoleSelected(matchedAccount.role)
+                                        onLoginSuccess(matchedAccount.role)
+                                    } else if (registered.isEmpty()) {
+                                        Toast.makeText(context, "No registered account found. Please click 'CREATE FIRST-TIME LOGIN ACCOUNT' below to set up your account with Resend verification.", Toast.LENGTH_LONG).show()
+                                        authMode = AuthMode.CREATE_ACCOUNT
+                                    } else {
+                                        Toast.makeText(context, "Authentication failed. Invalid Login ID / Email or Password.", Toast.LENGTH_LONG).show()
+                                    }
                                 },
                                 modifier = Modifier.testTag("btn_sign_in")
                             )
@@ -475,6 +524,53 @@ fun AuthScreen(
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.5.sp
                                 )
+                            }
+
+                            // Fluid Navigation Links: Go to Dashboard & Registration
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = onNavigateToDashboard,
+                                    modifier = Modifier.testTag("btn_auth_to_dashboard")
+                                ) {
+                                    Icon(
+                                        Icons.Default.Dashboard,
+                                        contentDescription = null,
+                                        tint = TnDeepTeal,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Open Dashboard",
+                                        color = TnDeepTeal,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                TextButton(
+                                    onClick = onNavigateToRegistry,
+                                    modifier = Modifier.testTag("btn_auth_to_registry")
+                                ) {
+                                    Icon(
+                                        Icons.Default.LocalHospital,
+                                        contentDescription = null,
+                                        tint = GovDeepGreen,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Open Registration",
+                                        color = GovDeepGreen,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -632,7 +728,7 @@ fun AuthScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
-                                Icon(Icons.Default.Send, contentDescription = null, tint = Color.White)
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Submit Request to Medical Council Head", color = Color.White, fontWeight = FontWeight.Bold)
                             }
@@ -936,21 +1032,46 @@ fun AuthScreen(
                                         Text("9. Email Verification Code (6 Digits)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                         OutlinedButton(
                                             onClick = {
-                                                regGeneratedCode = (100000..999999).random().toString()
+                                                if (regEmail.isBlank() || !regEmail.contains("@")) {
+                                                    Toast.makeText(context, "Please enter a valid email address first!", Toast.LENGTH_SHORT).show()
+                                                    return@OutlinedButton
+                                                }
+                                                val code = (100000..999999).random().toString()
+                                                regGeneratedCode = code
                                                 regVerificationCodeSent = true
-                                                regEnteredCode = regGeneratedCode
-                                                Toast.makeText(context, "Verification code sent to $regEmail: $regGeneratedCode", Toast.LENGTH_LONG).show()
+                                                regEnteredCode = ""
+                                                isSendingRegOtp = true
+                                                coroutineScope.launch {
+                                                    val result = ResendEmailService.sendOtpEmail(
+                                                        toEmail = regEmail.trim(),
+                                                        otp = code,
+                                                        officerName = regAdminName.ifBlank { "Hospital Administrator" }
+                                                    )
+                                                    isSendingRegOtp = false
+                                                    result.onSuccess {
+                                                        Toast.makeText(context, "Live 6-digit OTP sent to $regEmail via Resend!", Toast.LENGTH_LONG).show()
+                                                    }.onFailure { err ->
+                                                        Toast.makeText(context, "Resend API notice: ${err.message}", Toast.LENGTH_LONG).show()
+                                                    }
+                                                }
                                             },
+                                            enabled = !isSendingRegOtp,
                                             border = BorderStroke(1.dp, TnDeepTeal),
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
-                                            Text(if (regVerificationCodeSent) "Resend Code" else "Send Code to Email", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TnDeepTeal)
+                                            if (isSendingRegOtp) {
+                                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = TnDeepTeal)
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Dispatching...", fontSize = 11.sp, color = TnDeepTeal)
+                                            } else {
+                                                Text(if (regVerificationCodeSent) "Resend Code" else "Send Code to Email", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TnDeepTeal)
+                                            }
                                         }
                                     }
 
                                     if (regVerificationCodeSent) {
                                         Text(
-                                            text = "Verification code dispatched to $regEmail. Enter code:",
+                                            text = "Verification code dispatched to $regEmail via Resend. Check your inbox and enter code:",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = Color(0xFF047857)
@@ -969,23 +1090,64 @@ fun AuthScreen(
                             // 10. Complete Account Creation & Send Email Notification
                             Button(
                                 onClick = {
-                                    if (regAdminName.isEmpty() || regHospitalName.isEmpty()) {
-                                        Toast.makeText(context, "Please fill in all details!", Toast.LENGTH_SHORT).show()
+                                    if (regAdminName.isBlank() || regHospitalName.isBlank() || regHospitalLocation.isBlank()) {
+                                        Toast.makeText(context, "Please fill in all hospital and admin details!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
-                                    if (regPassword.isEmpty() || regPassword != regConfirmPassword) {
+                                    if (regEmail.isBlank() || !regEmail.contains("@")) {
+                                        Toast.makeText(context, "Please enter a valid email address!", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (regPassword.isBlank() || regPassword.length < 6) {
+                                        Toast.makeText(context, "Password must be at least 6 characters!", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (regPassword != regConfirmPassword) {
                                         Toast.makeText(context, "Passwords do not match!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
+                                    if (!regVerificationCodeSent) {
+                                        Toast.makeText(context, "Please click 'Send Code to Email' to receive your verification code first!", Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
+                                    if (regEnteredCode.trim() != regGeneratedCode) {
+                                        Toast.makeText(context, "Invalid OTP code! Please enter the 6-digit code received at $regEmail", Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
                                     val now = SimpleDateFormat("dd MMM yyyy, hh:mm:ss a 'IST'", Locale.getDefault()).format(Date())
+
+                                    val newAccount = InstitutionalAccount(
+                                        id = regGeneratedId,
+                                        fullName = regAdminName.trim(),
+                                        institutionName = regHospitalName.trim(),
+                                        district = regHospitalLocation.trim(),
+                                        officialEmail = regEmail.trim(),
+                                        mobile = regPhone.trim(),
+                                        role = UserRole.HOSPITAL_REGISTRAR,
+                                        password = regPassword,
+                                        createdAt = now
+                                    )
+                                    SafeStartRepository.registerAccount(newAccount)
+
+                                    coroutineScope.launch {
+                                        ResendEmailService.sendAccountCreationNotice(
+                                            toEmail = regEmail.trim(),
+                                            officerName = regAdminName.trim(),
+                                            roleName = "Hospital Administrator / Registrar",
+                                            generatedId = regGeneratedId,
+                                            facilityName = "${regHospitalName.trim()}, ${regHospitalLocation.trim()}",
+                                            timestamp = now
+                                        )
+                                    }
+
                                     createdAccountSummary = mapOf(
                                         "Role" to "Hospital Admin",
-                                        "Name" to regAdminName,
-                                        "Hospital" to regHospitalName,
-                                        "Location" to regHospitalLocation,
+                                        "Name" to regAdminName.trim(),
+                                        "Hospital" to regHospitalName.trim(),
+                                        "Location" to regHospitalLocation.trim(),
                                         "Generated ID" to regGeneratedId,
                                         "DateTime" to now,
-                                        "Email" to regEmail
+                                        "Email" to regEmail.trim()
                                     )
                                     showAccountCreatedModal = true
                                 },
@@ -1135,21 +1297,46 @@ fun AuthScreen(
                                         Text("9. Email Verification Code (6 Digits)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                         OutlinedButton(
                                             onClick = {
-                                                councilGeneratedCode = (100000..999999).random().toString()
+                                                if (councilEmail.isBlank() || !councilEmail.contains("@")) {
+                                                    Toast.makeText(context, "Please enter a valid email address first!", Toast.LENGTH_SHORT).show()
+                                                    return@OutlinedButton
+                                                }
+                                                val code = (100000..999999).random().toString()
+                                                councilGeneratedCode = code
                                                 councilVerificationCodeSent = true
-                                                councilEnteredCode = councilGeneratedCode
-                                                Toast.makeText(context, "Verification code sent to $councilEmail: $councilGeneratedCode", Toast.LENGTH_LONG).show()
+                                                councilEnteredCode = ""
+                                                isSendingCouncilOtp = true
+                                                coroutineScope.launch {
+                                                    val result = ResendEmailService.sendOtpEmail(
+                                                        toEmail = councilEmail.trim(),
+                                                        otp = code,
+                                                        officerName = councilOfficerName.ifBlank { "Medical Council Official" }
+                                                    )
+                                                    isSendingCouncilOtp = false
+                                                    result.onSuccess {
+                                                        Toast.makeText(context, "Live 6-digit OTP sent to $councilEmail via Resend!", Toast.LENGTH_LONG).show()
+                                                    }.onFailure { err ->
+                                                        Toast.makeText(context, "Resend API notice: ${err.message}", Toast.LENGTH_LONG).show()
+                                                    }
+                                                }
                                             },
+                                            enabled = !isSendingCouncilOtp,
                                             border = BorderStroke(1.dp, TnDeepTeal),
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
-                                            Text(if (councilVerificationCodeSent) "Resend Code" else "Send Code to Email", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TnDeepTeal)
+                                            if (isSendingCouncilOtp) {
+                                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = TnDeepTeal)
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Dispatching...", fontSize = 11.sp, color = TnDeepTeal)
+                                            } else {
+                                                Text(if (councilVerificationCodeSent) "Resend Code" else "Send Code to Email", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TnDeepTeal)
+                                            }
                                         }
                                     }
 
                                     if (councilVerificationCodeSent) {
                                         Text(
-                                            text = "Verification code dispatched to $councilEmail. Enter code:",
+                                            text = "Verification code dispatched to $councilEmail via Resend. Check your inbox and enter code:",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = Color(0xFF047857)
@@ -1168,23 +1355,64 @@ fun AuthScreen(
                             // 10. Complete Account Creation & Send Email Notification
                             Button(
                                 onClick = {
-                                    if (councilOfficerName.isEmpty() || councilDept.isEmpty()) {
-                                        Toast.makeText(context, "Please fill in all details!", Toast.LENGTH_SHORT).show()
+                                    if (councilOfficerName.isBlank() || councilDept.isBlank() || councilLocation.isBlank()) {
+                                        Toast.makeText(context, "Please fill in all Council official and directorate details!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
-                                    if (councilPassword.isEmpty() || councilPassword != councilConfirmPassword) {
+                                    if (councilEmail.isBlank() || !councilEmail.contains("@")) {
+                                        Toast.makeText(context, "Please enter a valid official email address!", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (councilPassword.isBlank() || councilPassword.length < 6) {
+                                        Toast.makeText(context, "Password must be at least 6 characters!", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (councilPassword != councilConfirmPassword) {
                                         Toast.makeText(context, "Passwords do not match!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
+                                    if (!councilVerificationCodeSent) {
+                                        Toast.makeText(context, "Please click 'Send Code to Email' to receive your verification code first!", Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
+                                    if (councilEnteredCode.trim() != councilGeneratedCode) {
+                                        Toast.makeText(context, "Invalid OTP code! Please enter the 6-digit code received at $councilEmail", Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
                                     val now = SimpleDateFormat("dd MMM yyyy, hh:mm:ss a 'IST'", Locale.getDefault()).format(Date())
+
+                                    val newAccount = InstitutionalAccount(
+                                        id = councilGeneratedId,
+                                        fullName = councilOfficerName.trim(),
+                                        institutionName = councilDept.trim(),
+                                        district = councilLocation.trim(),
+                                        officialEmail = councilEmail.trim(),
+                                        mobile = councilPhone.trim(),
+                                        role = UserRole.MEDICAL_COUNCIL,
+                                        password = councilPassword,
+                                        createdAt = now
+                                    )
+                                    SafeStartRepository.registerAccount(newAccount)
+
+                                    coroutineScope.launch {
+                                        ResendEmailService.sendAccountCreationNotice(
+                                            toEmail = councilEmail.trim(),
+                                            officerName = councilOfficerName.trim(),
+                                            roleName = "Government Medical Council Official",
+                                            generatedId = councilGeneratedId,
+                                            facilityName = "${councilDept.trim()}, ${councilLocation.trim()}",
+                                            timestamp = now
+                                        )
+                                    }
+
                                     createdAccountSummary = mapOf(
                                         "Role" to "Government Medical Council",
-                                        "Name" to councilOfficerName,
-                                        "Department" to councilDept,
-                                        "Location" to councilLocation,
+                                        "Name" to councilOfficerName.trim(),
+                                        "Department" to councilDept.trim(),
+                                        "Location" to councilLocation.trim(),
                                         "Generated ID" to councilGeneratedId,
                                         "DateTime" to now,
-                                        "Email" to councilEmail
+                                        "Email" to councilEmail.trim()
                                     )
                                     showAccountCreatedModal = true
                                 },
@@ -1251,7 +1479,7 @@ fun AuthScreen(
                         }
                     }
 
-                    Divider(color = Color(0xFFE2E8F0))
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
 
                     // Email body details according to requirements
                     Surface(
@@ -1274,7 +1502,7 @@ fun AuthScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
                             )
-                            Divider(color = Color(0xFFE2E8F0))
+                            HorizontalDivider(color = Color(0xFFE2E8F0))
 
                             Text("Dear ${createdAccountSummary["Name"]},", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
                             Text(

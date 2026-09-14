@@ -22,6 +22,7 @@ enum class UserRole(val label: String, val tamilLabel: String, val subtitle: Str
 }
 
 enum class AppWing(val title: String, val subtitle: String) {
+    DASHBOARD("Summary Dashboard", "Live Metrics & Identity Status"),
     AUTH("Authentication Portal", "Secured Gateway"),
     HOSPITAL_REGISTRY("Hospital Registry", "Local Civil Custody"),
     COUNCIL_OVERSIGHT("Council Oversight", "Statewide Directorate"),
@@ -35,6 +36,19 @@ enum class AuthTab(val title: String) {
     COUNCIL_RESET("Council Reset Workflow")
 }
 
+data class InstitutionalAccount(
+    val id: String, // e.g., "HOSP-TN-CHN-1049" or "COUNCIL-TN-CHN-89210"
+    val fullName: String,
+    val institutionName: String,
+    val district: String,
+    val officialEmail: String,
+    val mobile: String,
+    val role: UserRole,
+    val password: String,
+    val createdAt: String,
+    val isVerified: Boolean = true
+)
+
 data class NewbornRecord(
     val token: String,
     val fatherName: String,
@@ -46,10 +60,15 @@ data class NewbornRecord(
     val district: String,
     val hospitalLocation: String = district,
     val parentMobile: String,
+    val parentEmail: String = "",
+    val picmeNumber: String = "",
+    val motherAadhaar: String = "",
+    val crsRegistrationNumber: String = "",
     val status: String,
     val biometricHash: String,
     val secondsRemaining: Long = 76442L,
     val isCouncilLocked: Boolean = false,
+    val wardStatus: String = "Postnatal Ward", // "Postnatal Ward", "Labor & Delivery", "NICU / SNCU", "Special Care Nursery"
     val fatherScanUrl: String = SafeStartAssets.FATHER_FOOTPRINT,
     val motherScanUrl: String = SafeStartAssets.MOTHER_FOOTPRINT,
     val childScanUrl: String = SafeStartAssets.NEWBORN_FOOTPRINT,

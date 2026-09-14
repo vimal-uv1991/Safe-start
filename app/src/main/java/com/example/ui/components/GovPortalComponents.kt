@@ -8,15 +8,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
@@ -29,20 +34,29 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.example.R
 import com.example.data.AppWing
 import com.example.data.SafeStartAssets
+import com.example.data.SafeStartRepository
 import com.example.data.UserRole
+import com.example.network.ResendEmailService
 import com.example.ui.theme.*
+import kotlinx.coroutines.launch
 
 /**
  * 1. Top bar: thin black strip, saffron/gold text, left = official portal name + tagline,
  * right = helpline/status info in white/green text.
+ * Responsive layout ensures no text is hidden on 360dp phone screens.
  */
 @Composable
 fun GovTopBar(
@@ -55,67 +69,64 @@ fun GovTopBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 10.dp, vertical = 3.5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: official portal name + tagline in saffron/gold
+            // Left: official portal name + regional tag
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f, fill = false)
             ) {
                 Text(
                     text = "🇮🇳",
-                    fontSize = 11.sp
+                    fontSize = 10.sp
                 )
                 Text(
                     text = "GOVT. OF TAMIL NADU",
                     color = GovSaffronGold,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.6.sp
-                )
-                Text(
-                    text = "•",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = "NATIONAL DIGITAL HEALTH MISSION",
-                    color = Color.White.copy(alpha = 0.9f),
                     fontSize = 9.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.4.sp
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1
+                )
+                Text(
+                    text = "• NDHM",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 8.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
                 )
             }
 
-            // Right: helpline / status info in white/green text
+            // Right: helpline / status info
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.PhoneInTalk,
                         contentDescription = "Helpline",
                         tint = GovSaffronGold,
-                        modifier = Modifier.size(10.dp)
+                        modifier = Modifier.size(9.dp)
                     )
                     Text(
-                        text = "Helpline: 104",
+                        text = "104",
                         color = Color.White,
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Text(
-                    text = "|",
+                    text = "•",
                     color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 10.sp
+                    fontSize = 8.sp
                 )
 
                 Row(
@@ -124,14 +135,14 @@ fun GovTopBar(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(6.dp)
+                            .size(5.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF22C55E))
                     )
                     Text(
-                        text = "Operational",
+                        text = "ONLINE",
                         color = Color(0xFF4ADE80),
-                        fontSize = 9.5.sp,
+                        fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -141,9 +152,9 @@ fun GovTopBar(
 }
 
 /**
- * 2. Header: solid green background (#0E7C4A deep green), white govt emblem/logo in a white circle
- * on the left, bold white title (bilingual — English + regional language subtitle),
- * thin gold/yellow bottom border accent.
+ * 2. Header: solid green background (#0E7C4A deep green), official unreleased baby protection
+ * logo in a white circle on the left, bold white title (bilingual — English + regional language subtitle),
+ * role switcher and quick settings for Emblem Choice and Resend Email verification.
  */
 @Composable
 fun GovHeader(
@@ -153,6 +164,28 @@ fun GovHeader(
     onRoleSelected: (UserRole) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showLogoChoiceDialog by remember { mutableStateOf(false) }
+    var showResendDialog by remember { mutableStateOf(false) }
+    val selectedLogoChoice by SafeStartRepository.selectedLogoChoice.collectAsState()
+
+    // Dialogs
+    if (showLogoChoiceDialog) {
+        OfficialLogoConfirmationDialog(
+            currentChoice = selectedLogoChoice,
+            onChoiceConfirmed = { choice ->
+                SafeStartRepository.setSelectedLogoChoice(choice)
+                showLogoChoiceDialog = false
+            },
+            onDismiss = { showLogoChoiceDialog = false }
+        )
+    }
+
+    if (showResendDialog) {
+        ResendApiKeyDialog(
+            onDismiss = { showResendDialog = false }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -165,65 +198,98 @@ fun GovHeader(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Left: White Govt Emblem in a White Circle + Bilingual Title
+                // Left: Unreleased Baby Protection Emblem + Bilingual Title
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
+                    // Clickable Emblem with Choice indicator
                     Box(
                         modifier = Modifier
-                            .size(46.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .border(1.5.dp, GovSaffronGold, CircleShape),
+                            .border(1.5.dp, GovSaffronGold, CircleShape)
+                            .clickable { showLogoChoiceDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = SafeStartAssets.EMBLEM_URL,
-                            contentDescription = "Government Emblem of Tamil Nadu",
-                            modifier = Modifier.size(38.dp),
-                            contentScale = ContentScale.Fit
+                        val logoRes = when (selectedLogoChoice) {
+                            1 -> R.drawable.img_logo_choice1
+                            2 -> R.drawable.img_logo_choice2
+                            3 -> R.drawable.img_logo_choice3
+                            4 -> R.drawable.img_safestart_logo
+                            else -> R.drawable.img_logo_choice3
+                        }
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(id = logoRes),
+                            contentDescription = "Official Tamil Nadu Baby Protection Emblem",
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "SAFE START",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 0.6.sp,
+                                maxLines = 1
+                            )
+                            Surface(
+                                color = GovSaffronGold.copy(alpha = 0.25f),
+                                shape = RoundedCornerShape(3.dp),
+                                border = BorderStroke(0.5.dp, GovSaffronGold)
+                            ) {
+                                Text(
+                                    text = "TN-GOV",
+                                    color = GovSaffronGold,
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
                         Text(
-                            text = "SAFE START",
-                            color = Color.White,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 0.8.sp
-                        )
-                        Text(
-                            text = "காவல் துவக்கம் • NEWBORN IDENTITY PORTAL",
+                            text = "காவல் துவக்கம் • NEWBORN IDENTITY",
                             color = GovGoldAccent,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Tamper-Evident Institutional Registry & Statutory Custody",
+                            text = "Statutory Institutional Registry & Biometric Custody",
                             color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Normal
+                            fontSize = 8.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.width(6.dp))
+
                 // Role Switcher Button
                 Surface(
                     color = GovDarkNavy.copy(alpha = 0.95f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(7.dp),
                     border = BorderStroke(1.dp, GovSaffronGold),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(7.dp))
                         .clickable {
                             val nextRole = if (currentRole == UserRole.HOSPITAL_REGISTRAR) {
                                 UserRole.MEDICAL_COUNCIL
@@ -235,9 +301,9 @@ fun GovHeader(
                         .testTag("role_switcher_pill")
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = if (currentRole == UserRole.HOSPITAL_REGISTRAR) {
@@ -247,23 +313,93 @@ fun GovHeader(
                             },
                             contentDescription = "Role icon",
                             tint = GovSaffronGold,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                         Column {
                             Text(
-                                text = if (currentRole == UserRole.HOSPITAL_REGISTRAR) "HOSPITAL REGISTRAR" else "STATE COUNCIL",
+                                text = if (currentRole == UserRole.HOSPITAL_REGISTRAR) "REGISTRAR" else "COUNCIL",
                                 color = Color.White,
-                                fontSize = 9.5.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.4.sp
+                                letterSpacing = 0.3.sp,
+                                maxLines = 1
                             )
                             Text(
-                                text = "TAP TO SWITCH ROLE",
+                                text = "SWITCH ROLE",
                                 color = GovSaffronGold,
-                                fontSize = 7.5.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
                             )
                         }
+                    }
+                }
+            }
+
+            // Quick Configuration Chips Row (Logo Choices + Resend Real Email & OTP)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Official Emblem Choice Trigger Chip
+                Surface(
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(0.8.dp, GovSaffronGold.copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { showLogoChoiceDialog = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = GovSaffronGold, modifier = Modifier.size(11.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Emblem: Option $selectedLogoChoice (View Pictures)",
+                            color = Color.White,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // Resend Email API Status / Settings Trigger Chip
+                val resendReady = ResendEmailService.isConfigured()
+                Surface(
+                    color = if (resendReady) Color(0xFF047857).copy(alpha = 0.5f) else Color(0xFFB45309).copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(0.8.dp, if (resendReady) Color(0xFF34D399) else Color(0xFFFBBF24)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { showResendDialog = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = if (resendReady) Icons.Default.MarkEmailRead else Icons.Default.Email,
+                            contentDescription = null,
+                            tint = if (resendReady) Color(0xFF6EE7B7) else Color(0xFFFDE68A),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (resendReady) "Resend API: Active" else "Resend API: Setup Key",
+                            color = Color.White,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -301,11 +437,12 @@ fun GovHeader(
                             modifier = Modifier.padding(vertical = 6.dp)
                         ) {
                             val icon = when (wing) {
+                                AppWing.DASHBOARD -> Icons.Default.Dashboard
                                 AppWing.AUTH -> Icons.Default.Lock
                                 AppWing.HOSPITAL_REGISTRY -> Icons.Default.LocalHospital
                                 AppWing.COUNCIL_OVERSIGHT -> Icons.Default.Gavel
                                 AppWing.DISPUTE_VERIFICATION -> Icons.Default.Fingerprint
-                                AppWing.AUDIT_LEDGER -> Icons.Default.ReceiptLong
+                                AppWing.AUDIT_LEDGER -> Icons.AutoMirrored.Filled.ReceiptLong
                             }
                             Icon(
                                 imageVector = icon,
@@ -541,7 +678,9 @@ fun GovFormField(
     errorMessage: String? = null,
     enabled: Boolean = true,
     singleLine: Boolean = true,
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         // Label in bold uppercase with red asterisk for required
@@ -591,6 +730,8 @@ fun GovFormField(
             enabled = enabled,
             readOnly = readOnly,
             isError = isError,
+            visualTransformation = visualTransformation,
+            keyboardOptions = keyboardOptions,
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = GovDarkText,
@@ -690,8 +831,9 @@ fun GovPrimaryButton(
 }
 
 /**
- * 8. Secondary/quick-select cards: two-column grid of light bordered cards
+ * 8. Secondary/quick-select cards: flexible adaptive grid of light bordered cards
  * with bold colored title + gray ID/subtext below, hover/click highlight.
+ * Automatically adapts across phone screen widths to prevent content overflow.
  */
 @Composable
 fun GovQuickSelectCard(
@@ -700,7 +842,8 @@ fun GovQuickSelectCard(
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isSelected: Boolean = false
+    isSelected: Boolean = false,
+    badgeText: String? = null
 ) {
     Surface(
         color = if (isSelected) GovLightGreenTabBg else Color.White,
@@ -711,13 +854,15 @@ fun GovQuickSelectCard(
         ),
         shadowElevation = if (isSelected) 2.dp else 0.5.dp,
         modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -736,15 +881,40 @@ fun GovQuickSelectCard(
                 )
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) GovDeepGreen else GovDarkText,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) GovDeepGreen else GovDarkText,
+                        maxLines = 2,
+                        lineHeight = 14.sp,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (badgeText != null) {
+                        Surface(
+                            color = if (isSelected) GovDeepGreen else Color(0xFFE2E8F0),
+                            shape = RoundedCornerShape(3.dp)
+                        ) {
+                            Text(
+                                text = badgeText,
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = subtext,
                     fontSize = 9.5.sp,
@@ -752,6 +922,53 @@ fun GovQuickSelectCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Flexible arrangement container for secondary / quick-select cards.
+ * Automatically adapts column count based on available width (1 column on narrow phones < 340dp,
+ * weight-based 2-column row on standard phones and tablets) to completely prevent content clipping.
+ */
+@Composable
+fun <T> GovAdaptiveQuickSelectGrid(
+    items: List<T>,
+    modifier: Modifier = Modifier,
+    minColumnWidth: androidx.compose.ui.unit.Dp = 150.dp,
+    horizontalSpacing: androidx.compose.ui.unit.Dp = 8.dp,
+    verticalSpacing: androidx.compose.ui.unit.Dp = 8.dp,
+    itemContent: @Composable (item: T, isSingleColumn: Boolean) -> Unit
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val availableWidth = maxWidth
+        // If available width is below 340dp or too tight for 2 columns, fall back to single column
+        val isSingleColumn = availableWidth < 340.dp
+        val columns = if (isSingleColumn) 1 else 2
+
+        val rows = items.chunked(columns)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(verticalSpacing)
+        ) {
+            rows.forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
+                ) {
+                    rowItems.forEach { item ->
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            itemContent(item, isSingleColumn)
+                        }
+                    }
+                    val emptySlots = columns - rowItems.size
+                    for (i in 0 until emptySlots) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
@@ -766,10 +983,17 @@ fun GovQuickSelectCard(
 fun GovSectionCard(
     title: String,
     modifier: Modifier = Modifier,
-    isVerified: Boolean = false,
-    statusTextOverride: String? = null,
+    number: String? = null,
+    statusPillText: String? = null,
+    isStatusVerified: Boolean = false,
+    isVerified: Boolean = isStatusVerified,
+    statusTextOverride: String? = statusPillText,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val displayTitle = if (number != null && !title.startsWith(number)) "$number. $title" else title
+    val effectiveVerified = isVerified || isStatusVerified
+    val statusText = statusTextOverride ?: statusPillText ?: if (effectiveVerified) "✓ Verified" else "✕ Not Captured"
+
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(8.dp),
@@ -785,7 +1009,7 @@ fun GovSectionCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = title.uppercase(),
+                    text = displayTitle.uppercase(),
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = GovDarkNavy,
@@ -794,15 +1018,14 @@ fun GovSectionCard(
                 )
 
                 // Colored status pill on the right
-                val statusText = statusTextOverride ?: if (isVerified) "✓ Verified" else "✕ Not Captured"
                 Surface(
-                    color = if (isVerified) GovVerifiedGreenBg else GovAlertRedBg,
+                    color = if (effectiveVerified) GovVerifiedGreenBg else GovAlertRedBg,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (isVerified) Color(0xFF86EFAC) else Color(0xFFFCA5A5))
+                    border = BorderStroke(1.dp, if (effectiveVerified) Color(0xFF86EFAC) else Color(0xFFFCA5A5))
                 ) {
                     Text(
                         text = statusText,
-                        color = if (isVerified) GovVerifiedGreen else GovAlertRed,
+                        color = if (effectiveVerified) GovVerifiedGreen else GovAlertRed,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -810,7 +1033,7 @@ fun GovSectionCard(
                 }
             }
 
-            Divider(
+            HorizontalDivider(
                 color = Color(0xFFF1F5F9),
                 thickness = 1.dp,
                 modifier = Modifier.padding(vertical = 10.dp)
@@ -829,18 +1052,29 @@ fun GovSectionCard(
  */
 @Composable
 fun GovBiometricCaptureBox(
-    title: String,
-    isCaptured: Boolean,
-    isScanning: Boolean,
-    onCaptureClick: () -> Unit,
-    onUploadClick: () -> Unit,
-    onClearClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    capturedImageUri: String? = null
+    title: String = "",
+    label: String = title,
+    previewUrl: String? = null,
+    capturedImageUri: String? = previewUrl,
+    fileName: String = "",
+    isCaptured: Boolean = !previewUrl.isNullOrBlank() || !capturedImageUri.isNullOrBlank() || fileName.isNotBlank(),
+    isScanning: Boolean = false,
+    onCaptureClick: () -> Unit = {},
+    onCapture: () -> Unit = onCaptureClick,
+    onUploadClick: () -> Unit = {},
+    onUpload: () -> Unit = onUploadClick,
+    onClearClick: () -> Unit = {},
+    onClear: () -> Unit = onClearClick,
+    modifier: Modifier = Modifier
 ) {
+    val displayTitle = if (title.isNotEmpty()) title else label
+    val effectiveCaptureAction = if (onCapture != onCaptureClick) onCapture else onCaptureClick
+    val effectiveUploadAction = if (onUpload != onUploadClick) onUpload else onUploadClick
+    val effectiveClearAction = if (onClear != onClearClick) onClear else onClearClick
+
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = title.uppercase(),
+            text = displayTitle.uppercase(),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF334155),
@@ -866,59 +1100,117 @@ fun GovBiometricCaptureBox(
                 // Concentric scan animation
                 ConcentricScanAnimation()
             } else if (isCaptured) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(GovVerifiedGreenBg)
-                            .border(1.5.dp, GovDeepGreen, CircleShape),
-                        contentAlignment = Alignment.Center
+                val effectiveUri = if (!capturedImageUri.isNullOrBlank()) capturedImageUri else previewUrl
+                if (!effectiveUri.isNullOrBlank()) {
+                    // Display the real uploaded JPG/PNG or preview image
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AsyncImage(
+                            model = effectiveUri,
+                            contentDescription = "Selected biometric scan",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                        // Translucent badge overlay at bottom
+                        Surface(
+                            color = Color(0xDD0F172A),
+                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.weight(1f, fill = false)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4ADE80),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = if (fileName.isNotBlank()) fileName else "JPG/PNG Attached",
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "SHA-256 HASHED",
+                                    color = GovSaffronGold,
+                                    fontSize = 8.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Captured",
-                            tint = GovDeepGreen,
-                            modifier = Modifier.size(28.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(GovVerifiedGreenBg)
+                                .border(1.5.dp, GovDeepGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Captured",
+                                tint = GovDeepGreen,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                        Text(
+                            text = "BIOMETRIC FOOTPRINT RECORDED",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GovDeepGreen,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "SHA-256 Hash Generated & Ready for Custody",
+                            fontSize = 9.sp,
+                            color = Color(0xFF047857)
                         )
                     }
-                    Text(
-                        text = "BIOMETRIC FOOTPRINT RECORDED",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GovDeepGreen,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = "SHA-256 Hash Generated & Ready for Custody",
-                        fontSize = 9.5.sp,
-                        color = Color(0xFF047857)
-                    )
                 }
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Fingerprint,
                         contentDescription = null,
                         tint = Color(0xFF64748B),
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(32.dp)
                     )
                     Text(
-                        text = "Place baby's foot on sensor or click Capture",
-                        fontSize = 11.sp,
+                        text = "Place foot on sensor or click Upload JPG/PNG",
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF64748B)
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Supports USB optical scanner, flatbed, or certified file",
-                        fontSize = 9.sp,
-                        color = Color(0xFF94A3B8)
+                        text = "Supports certified JPG, PNG, or flatbed optical scanner",
+                        fontSize = 8.5.sp,
+                        color = Color(0xFF94A3B8),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -926,49 +1218,55 @@ fun GovBiometricCaptureBox(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Three small action buttons underneath: green "Capture", dark navy "Upload", gray "Clear"
+        // Three responsive action buttons underneath: green "Capture", dark navy "Upload", gray "Clear"
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // Green "Capture" button
             Button(
-                onClick = onCaptureClick,
+                onClick = effectiveCaptureAction,
                 shape = RoundedCornerShape(6.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GovDeepGreen),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                modifier = Modifier.weight(1f).height(36.dp)
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .defaultMinSize(minHeight = 36.dp)
             ) {
-                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(13.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Capture", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.width(3.dp))
+                Text("Capture", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
 
-            // Dark Navy "Upload" button
+            // Dark Navy "Upload" button (Supports JPG / PNG)
             Button(
-                onClick = onUploadClick,
+                onClick = effectiveUploadAction,
                 shape = RoundedCornerShape(6.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = GovDarkNavy),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                modifier = Modifier.weight(1f).height(36.dp)
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                modifier = Modifier
+                    .weight(1.15f)
+                    .defaultMinSize(minHeight = 36.dp)
             ) {
-                Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(13.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Upload", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.width(3.dp))
+                Text("Upload JPG/PNG", fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
 
             // Gray "Clear" button
             OutlinedButton(
-                onClick = onClearClick,
+                onClick = effectiveClearAction,
                 shape = RoundedCornerShape(6.dp),
                 border = BorderStroke(1.dp, GovGrayBorder),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF475569)),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                modifier = Modifier.weight(0.9f).height(36.dp)
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                modifier = Modifier
+                    .weight(0.85f)
+                    .defaultMinSize(minHeight = 36.dp)
             ) {
-                Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(13.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Clear", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.width(2.dp))
+                Text("Clear", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
     }
@@ -1031,10 +1329,10 @@ private fun ConcentricScanAnimation() {
 /**
  * Custom modifier helper for drawing dashed border
  */
-fun Modifier.drawWithDashedBorder(color: Color, strokeWidth: Float, cornerRadius: Float): Modifier =
+fun Modifier.drawWithDashedBorder(color: Color, strokeWidth: Float = 1.5f, cornerRadius: Float = 8f): Modifier =
     this.drawWithCache {
         val stroke = Stroke(
-            width = strokeWidth.dp.toPx(),
+            width = strokeWidth * density,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
         )
         onDrawWithContent {
@@ -1042,7 +1340,7 @@ fun Modifier.drawWithDashedBorder(color: Color, strokeWidth: Float, cornerRadius
             drawRoundRect(
                 color = color,
                 style = stroke,
-                cornerRadius = CornerRadius(cornerRadius.dp.toPx(), cornerRadius.dp.toPx())
+                cornerRadius = CornerRadius(cornerRadius * density, cornerRadius * density)
             )
         }
     }
@@ -1055,10 +1353,13 @@ fun Modifier.drawWithDashedBorder(color: Color, strokeWidth: Float, cornerRadius
 @Composable
 fun GovSuccessToast(
     title: String,
-    message: String,
+    message: String = "",
+    description: String = message,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val displayMessage = if (description.isNotEmpty()) description else message
+
     Surface(
         color = GovDeepGreen,
         shape = RoundedCornerShape(8.dp),
@@ -1099,7 +1400,7 @@ fun GovSuccessToast(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = message,
+                    text = displayMessage,
                     color = Color.White.copy(alpha = 0.9f),
                     fontSize = 11.sp,
                     lineHeight = 15.sp
@@ -1127,11 +1428,16 @@ fun GovSuccessToast(
  */
 @Composable
 fun GovSmsDeliveredToast(
-    recipient: String,
-    smsBody: String,
+    recipient: String = "REGISTERED PHONE",
+    smsBody: String = "",
+    title: String = "GOVT SMS DISPATCHED: $recipient",
+    monospaceBody: String = smsBody,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val displayTitle = if (title.isNotEmpty()) title else "GOVT SMS DISPATCHED: $recipient"
+    val displayBody = if (monospaceBody.isNotEmpty()) monospaceBody else smsBody
+
     Surface(
         color = GovDarkNavy,
         shape = RoundedCornerShape(8.dp),
@@ -1162,7 +1468,7 @@ fun GovSmsDeliveredToast(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = "GOVT SMS DISPATCHED: $recipient",
+                        text = displayTitle,
                         color = Color.White,
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -1186,7 +1492,7 @@ fun GovSmsDeliveredToast(
             // Monospace Body Text
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = smsBody,
+                    text = displayBody,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
                     color = Color(0xFFF1F5F9),
@@ -1249,6 +1555,611 @@ fun GovDataTableHeader(
                     letterSpacing = 0.5.sp,
                     modifier = Modifier.weight(if (index == 0) 1.2f else 1f)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Dialog enabling the official confirmation of unreleased Tamil Nadu baby protection emblem designs.
+ */
+@Composable
+fun OfficialLogoConfirmationDialog(
+    currentChoice: Int,
+    onChoiceConfirmed: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedChoice by remember { mutableStateOf(currentChoice) }
+    var zoomedImageRes by remember { mutableStateOf<Int?>(null) }
+
+    // Full-screen zoomed view modal
+    if (zoomedImageRes != null) {
+        Dialog(onDismissRequest = { zoomedImageRes = null }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                border = BorderStroke(2.dp, GovSaffronGold),
+                shadowElevation = 24.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ENLARGED EMBLEM INSPECTION",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GovDarkNavy
+                        )
+                        IconButton(onClick = { zoomedImageRes = null }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.Gray)
+                        }
+                    }
+
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(id = zoomedImageRes!!),
+                        contentDescription = "Zoomed Logo Preview",
+                        modifier = Modifier
+                            .size(220.dp)
+                            .clip(CircleShape)
+                            .border(3.dp, GovSaffronGold, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Text(
+                        text = "Tamil Nadu Government • Civil Registration Directorate\nStatutory Tamper-Proof Newborn Protection Emblem",
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.Center,
+                        color = Color(0xFF64748B)
+                    )
+
+                    Button(
+                        onClick = { zoomedImageRes = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = GovDeepGreen),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("BACK TO SELECTION", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+
+    val options = remember {
+        listOf(
+            LogoOptionItem(
+                id = 1,
+                title = "Choice 1: Gopuram Apex & Protective Cradle",
+                tamilTitle = "ஸ்ரீவில்லிபுத்தூர் கோபுரம் & பொற்கர தொட்டில்",
+                badgeLabel = "TEMPLE GOPURAM & GOLDEN CRADLE",
+                description = "Sacred Srivilliputhur Gopuram temple tower apex with cupped golden hands safely cradling a peaceful newborn infant, encircled by biometric fingerprint ridge ribbons and emerald-gold roundel.",
+                drawableRes = R.drawable.img_logo_choice1
+            ),
+            LogoOptionItem(
+                id = 2,
+                title = "Choice 2: Ashoka Lion & Maternal Shield",
+                tamilTitle = "அசோக சிங்க முத்திரை & தாய்-சேய் பாதுகாப்பு கேடயம்",
+                badgeLabel = "ASHOKA CAPITAL & DEFENSE SHIELD",
+                description = "Sovereign state crest featuring the Ashoka Lion Capital atop a circular golden shield with maternal silhouette holding infant, wheat ears, and biometric security pattern.",
+                drawableRes = R.drawable.img_logo_choice2
+            ),
+            LogoOptionItem(
+                id = 3,
+                title = "Choice 3: Sacred Lotus Throne & Protected Infant",
+                tamilTitle = "புனித தாமரை மலர் & பச்சிளம் குழந்தை சிம்மாசனம்",
+                badgeLabel = "SACRED LOTUS & GENTLE INFANT",
+                description = "Tamil Nadu state seal style with a sacred blooming lotus flower holding a swaddled infant, crowned by Tamil Nadu Gopuram architectural silhouette and biometric plantar footprint motifs.",
+                drawableRes = R.drawable.img_logo_choice3
+            ),
+            LogoOptionItem(
+                id = 4,
+                title = "Choice 4: Sovereign Laurel & Biometric Roundel",
+                tamilTitle = "அரசு வெற்றி வாகை & பாதரேகை முத்திரை",
+                badgeLabel = "LAUREL WREATH & SOVEREIGN CREST",
+                description = "Deep emerald laurel wreath ring encircling a golden infant silhouette, biometric plantar ridges, and bilingual state roundel inscription.",
+                drawableRes = R.drawable.img_safestart_logo
+            )
+        )
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White,
+            border = BorderStroke(1.5.dp, GovDeepGreen),
+            shadowElevation = 16.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = GovDeepGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "OFFICIAL EMBLEM SELECTION",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = GovDarkNavy,
+                                letterSpacing = 0.4.sp
+                            )
+                            Text(
+                                text = "Tamil Nadu Government Newborn Protection Reference",
+                                fontSize = 9.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF94A3B8))
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                // Spotlight Preview of Active Selection
+                val currentSelectedOption = options.find { it.id == selectedChoice } ?: options.first()
+                Surface(
+                    color = Color(0xFFF8FAFC),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.5.dp, GovSaffronGold),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = GovDeepGreen,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "ACTIVE PREVIEW • OPTION $selectedChoice",
+                                    color = Color.White,
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Text(
+                                text = "Tap image to enlarge 🔍",
+                                fontSize = 8.5.sp,
+                                color = Color(0xFF64748B),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Large Spotlight Image
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(id = currentSelectedOption.drawableRes),
+                            contentDescription = currentSelectedOption.title,
+                            modifier = Modifier
+                                .size(110.dp)
+                                .clip(CircleShape)
+                                .border(2.5.dp, GovSaffronGold, CircleShape)
+                                .clickable { zoomedImageRes = currentSelectedOption.drawableRes },
+                            contentScale = ContentScale.Crop
+                        )
+
+                        Text(
+                            text = currentSelectedOption.title,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GovDarkNavy,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = currentSelectedOption.tamilTitle,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = GovDeepGreen,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Tap any picture below to preview and choose the active emblem for institutional dossiers, child health records, and QR custody tokens:",
+                    fontSize = 10.sp,
+                    color = Color(0xFF475569),
+                    lineHeight = 14.sp
+                )
+
+                // Render Option Cards
+                options.forEach { option ->
+                    val isSelected = selectedChoice == option.id
+                    Surface(
+                        color = if (isSelected) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(
+                            if (isSelected) 2.dp else 1.dp,
+                            if (isSelected) GovDeepGreen else Color(0xFFCBD5E1)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { selectedChoice = option.id }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Clickable Thumbnail for zoom
+                            Box(
+                                contentAlignment = Alignment.BottomEnd,
+                                modifier = Modifier
+                                    .size(68.dp)
+                                    .clip(CircleShape)
+                                    .border(1.5.dp, if (isSelected) GovSaffronGold else Color(0xFFCBD5E1), CircleShape)
+                                    .clickable { zoomedImageRes = option.drawableRes }
+                            ) {
+                                androidx.compose.foundation.Image(
+                                    painter = painterResource(id = option.drawableRes),
+                                    contentDescription = option.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .background(GovDarkNavy.copy(alpha = 0.8f), CircleShape)
+                                        .border(0.5.dp, Color.White, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Zoom",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "OPTION ${option.id}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = if (isSelected) GovDeepGreen else GovDarkNavy
+                                    )
+                                    if (isSelected) {
+                                        Surface(
+                                            color = GovDeepGreen,
+                                            shape = RoundedCornerShape(3.dp)
+                                        ) {
+                                            Text(
+                                                text = "SELECTED",
+                                                color = Color.White,
+                                                fontSize = 7.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Text(
+                                    text = option.title.substringAfter(": "),
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GovDarkNavy,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Text(
+                                    text = option.tamilTitle,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = GovDeepGreen
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = option.description,
+                                    fontSize = 8.5.sp,
+                                    color = Color(0xFF64748B),
+                                    lineHeight = 12.sp,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Action Confirmation Button
+                Button(
+                    onClick = { onChoiceConfirmed(selectedChoice) },
+                    colors = ButtonDefaults.buttonColors(containerColor = GovDeepGreen),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                ) {
+                    Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "CONFIRM OPTION $selectedChoice AS ACTIVE EMBLEM",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Data model for Official Tamil Nadu Baby Protection Logo options.
+ */
+private data class LogoOptionItem(
+    val id: Int,
+    val title: String,
+    val tamilTitle: String,
+    val badgeLabel: String,
+    val description: String,
+    val drawableRes: Int
+)
+
+/**
+ * Dialog enabling configuration and live testing of the Resend API transactional email & OTP gateway.
+ */
+@Composable
+fun ResendApiKeyDialog(
+    onDismiss: () -> Unit
+) {
+    var apiKeyInput by remember { mutableStateOf<String>(ResendEmailService.apiKey) }
+    var testEmailInput by remember { mutableStateOf("vimal.uv1991@gmail.com") }
+    var isSending by remember { mutableStateOf(false) }
+    var sendStatusMessage by remember { mutableStateOf<String?>(null) }
+    var sendStatusSuccess by remember { mutableStateOf<Boolean?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White,
+            border = BorderStroke(1.5.dp, GovDarkNavy),
+            shadowElevation = 12.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = null,
+                            tint = GovDeepGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "RESEND EMAIL & OTP GATEWAY",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = GovDarkNavy
+                            )
+                            Text(
+                                text = "Statutory Transactional Dispatch (api.resend.com)",
+                                fontSize = 9.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF94A3B8))
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                // Key Status indicator
+                val isConfigured = ResendEmailService.isConfigured()
+                Surface(
+                    color = if (isConfigured) Color(0xFFECFDF5) else Color(0xFFFFFBEB),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, if (isConfigured) Color(0xFFA7F3D0) else Color(0xFFFDE68A)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isConfigured) Icons.Default.CheckCircle else Icons.Default.Info,
+                            contentDescription = null,
+                            tint = if (isConfigured) GovDeepGreen else Color(0xFFD97706),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        val activeKey = ResendEmailService.apiKey
+                        val activeKeyPreview = if (activeKey.length >= 10) "${activeKey.take(6)}...${activeKey.takeLast(4)}" else activeKey
+                        Text(
+                            text = if (isConfigured) {
+                                "Active Resend Key Configured: $activeKeyPreview"
+                            } else {
+                                "No Resend key found in BuildConfig. Enter below to enable live email delivery."
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isConfigured) GovDeepGreen else Color(0xFF92400E)
+                        )
+                    }
+                }
+
+                // API Key Input
+                OutlinedTextField(
+                    value = apiKeyInput,
+                    onValueChange = { apiKeyInput = it },
+                    label = { Text("Resend API Key (re_...)", fontSize = 10.5.sp) },
+                    placeholder = { Text("re_123456789...", fontSize = 10.5.sp) },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Save Key button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(
+                        onClick = {
+                            ResendEmailService.setApiKey(apiKeyInput.trim())
+                            sendStatusMessage = "Resend API Key saved for active session."
+                            sendStatusSuccess = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = GovDarkNavy),
+                        shape = RoundedCornerShape(4.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Apply Key", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                // Real Test Dispatch
+                Text(
+                    text = "TEST REAL EMAIL & OTP DISPATCH",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GovDarkNavy
+                )
+
+                OutlinedTextField(
+                    value = testEmailInput,
+                    onValueChange = { testEmailInput = it },
+                    label = { Text("Recipient Email Address", fontSize = 10.5.sp) },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = {
+                        isSending = true
+                        sendStatusMessage = null
+                        sendStatusSuccess = null
+                        coroutineScope.launch {
+                            val otp = (100000..999999).random().toString()
+                            val result = ResendEmailService.sendOtpEmail(
+                                toEmail = testEmailInput.trim(),
+                                otp = otp,
+                                officerName = "Dr. Officer"
+                            )
+                            isSending = false
+                            if (result.isSuccess) {
+                                val txId = result.getOrNull()
+                                sendStatusSuccess = true
+                                sendStatusMessage = "✓ Real OTP Email ($otp) dispatched successfully!\nResend Message ID: $txId\nCheck inbox at ${testEmailInput.trim()}."
+                            } else {
+                                sendStatusSuccess = false
+                                sendStatusMessage = "✕ Resend Dispatch Notice: ${result.exceptionOrNull()?.message}"
+                            }
+                        }
+                    },
+                    enabled = !isSending && testEmailInput.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = GovDeepGreen),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isSending) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Dispatching via Resend API...", fontSize = 11.sp)
+                    } else {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Send Real 6-Digit OTP Email", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Status banner if sent
+                sendStatusMessage?.let { msg ->
+                    Surface(
+                        color = if (sendStatusSuccess == true) Color(0xFFECFDF5) else Color(0xFFFEF2F2),
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, if (sendStatusSuccess == true) Color(0xFFA7F3D0) else Color(0xFFFECACA)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = msg,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (sendStatusSuccess == true) GovDeepGreen else Color(0xFFDC2626),
+                            modifier = Modifier.padding(8.dp),
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
             }
         }
     }

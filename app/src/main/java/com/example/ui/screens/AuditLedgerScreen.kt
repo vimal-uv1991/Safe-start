@@ -5,6 +5,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,7 +53,7 @@ fun AuditLedgerScreen(
         GovPageHero(
             title = "SOVEREIGN CRYPTOGRAPHIC AUDIT CHAIN",
             subtitle = "Immutable SHA-256 State Ledger & HSM Attested Tamper Proof Logs",
-            icon = Icons.Default.ReceiptLong
+            icon = Icons.AutoMirrored.Filled.ReceiptLong
         )
 
         // STATUTORY ATTESTATION INFO CALLOUT BOX

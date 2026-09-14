@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +38,7 @@ enum class CouncilSubTab {
 
 @Composable
 fun CouncilOversightScreen(
+    onNavigateToDashboard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -222,7 +224,7 @@ fun CouncilOversightScreen(
             options = listOf(
                 "RECORDS" to Icons.Default.TableChart,
                 "PW RESETS (${passwordResets.filter { it.status == "PENDING" }.size})" to Icons.Default.LockReset,
-                "COMPLAINTS" to Icons.Default.Assignment,
+                "COMPLAINTS" to Icons.AutoMirrored.Filled.Assignment,
                 "10-YR AUDIT" to Icons.Default.Fingerprint
             ),
             selectedIndex = when (activeTab) {
@@ -240,6 +242,32 @@ fun CouncilOversightScreen(
                 }
             }
         )
+
+        // Quick Summary Dashboard Navigation Banner
+        Surface(
+            color = Color(0xFFECFDF5),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Color(0xFFA7F3D0)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToDashboard() }
+                .testTag("banner_council_to_summary_dashboard")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Dashboard, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(18.dp))
+                    Column {
+                        Text("Summary Dashboard (Identity Overview)", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46))
+                        Text("Overview of verified vs pending newborn registrations", fontSize = 10.sp, color = Color(0xFF047857))
+                    }
+                }
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go to dashboard", tint = Color(0xFF059669), modifier = Modifier.size(16.dp))
+            }
+        }
 
         when (activeTab) {
             CouncilSubTab.STATEWIDE_RECORDS_TABLE -> {
@@ -351,7 +379,7 @@ fun CouncilOversightScreen(
                             }
                         }
 
-                        Divider(color = Color(0xFFE2E8F0))
+                        HorizontalDivider(color = Color(0xFFE2E8F0))
 
                         Text(
                             text = "HOSPITAL IDENTIFIED: ${filteredRecords.size} INFANT DOSSIERS FOUND",
@@ -617,7 +645,7 @@ fun CouncilOversightScreen(
                                         shape = RoundedCornerShape(6.dp),
                                         modifier = Modifier.fillMaxWidth().height(36.dp)
                                     ) {
-                                        Icon(Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Conduct Biometric Cross-Check & Issue Official Report", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
@@ -735,7 +763,7 @@ fun CouncilOversightScreen(
                         }
                     }
 
-                    Divider(color = Color(0xFFE2E8F0))
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
 
                     Surface(
                         color = Color(0xFFF8FAFC),
@@ -747,7 +775,7 @@ fun CouncilOversightScreen(
                             Text("• Subject Child: ${cmp.childName}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
                             Text("• Issue Category: ${cmp.issueType}", fontSize = 11.sp, color = Color(0xFF0F172A))
                             Text("• Facility: ${cmp.hospitalName}", fontSize = 11.sp, color = Color(0xFF0F172A))
-                            Divider(color = Color(0xFFE2E8F0))
+                            HorizontalDivider(color = Color(0xFFE2E8F0))
                             Text("BIOMETRIC FORENSIC CROSS-CHECK RESULTS:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
                             Text("1. Newborn Footprint Hash: MATCHED (99.98% Confidence)", fontSize = 11.sp, color = Color(0xFF047857))
                             Text("2. Maternal Footprint Hash: MATCHED (100% Identity Integrity)", fontSize = 11.sp, color = Color(0xFF047857))
