@@ -62,89 +62,99 @@ import kotlinx.coroutines.launch
 fun GovTopBar(
     modifier: Modifier = Modifier
 ) {
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val topInset = maxOf(statusBarTop, 42.dp)
+
     Surface(
         color = GovTopBarBlack,
         modifier = modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 3.5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Left: official portal name + regional tag
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1f, fill = false)
-            ) {
-                Text(
-                    text = "🇮🇳",
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = "GOVT. OF TAMIL NADU",
-                    color = GovSaffronGold,
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                    maxLines = 1
-                )
-                Text(
-                    text = "• NDHM",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 8.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
-                )
-            }
+            // Downward offset guaranteeing full clearance below device status bar icons (clock, battery, wifi)
+            Spacer(modifier = Modifier.height(topInset))
 
-            // Right: helpline / status info
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Left: official portal name + regional tag
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f, fill = false)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PhoneInTalk,
-                        contentDescription = "Helpline",
-                        tint = GovSaffronGold,
-                        modifier = Modifier.size(9.dp)
+                    Text(
+                        text = "🇮🇳",
+                        fontSize = 10.sp
                     )
                     Text(
-                        text = "104",
-                        color = Color.White,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "GOVT. OF TAMIL NADU",
+                        color = GovSaffronGold,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "• NDHM",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1
                     )
                 }
 
-                Text(
-                    text = "•",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 8.sp
-                )
-
+                // Right: helpline / status info
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(5.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF22C55E))
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PhoneInTalk,
+                            contentDescription = "Helpline",
+                            tint = GovSaffronGold,
+                            modifier = Modifier.size(9.dp)
+                        )
+                        Text(
+                            text = "104",
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Text(
-                        text = "ONLINE",
-                        color = Color(0xFF4ADE80),
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "•",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 8.sp
                     )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF22C55E))
+                        )
+                        Text(
+                            text = "ONLINE",
+                            color = Color(0xFF4ADE80),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
