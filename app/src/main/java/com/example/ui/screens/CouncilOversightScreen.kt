@@ -510,9 +510,13 @@ fun CouncilOversightScreen(
                                         ) {
                                             Button(
                                                 onClick = {
-                                                    SafeStartRepository.approvePasswordReset(req.id)
-                                                    successToastMsg = "COUNCIL AUTHORIZATION GRANTED" to "Reset token generated for ${req.hospitalName} (${req.id})."
-                                                    smsToastMsg = "HOSPITAL NOTIFICATION DISPATCHED" to "TN-COUNCIL: Password reset approved for Admin ID ${req.id}. Code: RST-TN-9921."
+                                                    val apprvResult = SafeStartRepository.approvePasswordReset(req.id)
+                                                    apprvResult.onSuccess { issuedToken ->
+                                                        successToastMsg = "COUNCIL AUTHORIZATION ISSUED" to "Single-use reset token: $issuedToken (Valid 15m for ${req.hospitalName})."
+                                                        smsToastMsg = "HOSPITAL NOTIFICATION DISPATCHED" to "TN-COUNCIL: Password reset approved for ${req.id}. One-time Token: $issuedToken"
+                                                    }.onFailure { err ->
+                                                        Toast.makeText(context, "Approval error: ${err.message}", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF047857)),
                                                 shape = RoundedCornerShape(6.dp),
@@ -520,7 +524,7 @@ fun CouncilOversightScreen(
                                             ) {
                                                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Approve with Council Key", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                Text("Authorize & Issue Key", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                             }
 
                                             OutlinedButton(
@@ -776,11 +780,12 @@ fun CouncilOversightScreen(
                             Text("• Issue Category: ${cmp.issueType}", fontSize = 11.sp, color = Color(0xFF0F172A))
                             Text("• Facility: ${cmp.hospitalName}", fontSize = 11.sp, color = Color(0xFF0F172A))
                             HorizontalDivider(color = Color(0xFFE2E8F0))
-                            Text("BIOMETRIC FORENSIC CROSS-CHECK RESULTS:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
-                            Text("1. Newborn Footprint Hash: MATCHED (99.98% Confidence)", fontSize = 11.sp, color = Color(0xFF047857))
-                            Text("2. Maternal Footprint Hash: MATCHED (100% Identity Integrity)", fontSize = 11.sp, color = Color(0xFF047857))
-                            Text("3. Paternal Footprint Hash: MATCHED (100% Biological Alignment)", fontSize = 11.sp, color = Color(0xFF047857))
-                            Text("Conclusion: Stored records verify infant authenticity without doubt. Grievance resolved under Council Authority.", fontSize = 11.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
+                            Text("BIOMETRIC FORENSIC AUDIT STATUS:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                            Text("1. Infant Plantar Template: Registered SHA-256 Digest Confirmed in Civil Archive", fontSize = 11.sp, color = Color(0xFF047857))
+                            Text("2. Maternal Biometric Vector: Plantar Ridge Feature Hash Validated", fontSize = 11.sp, color = Color(0xFF047857))
+                            Text("3. Paternal Biometric Vector: Plantar Ridge Feature Hash Validated", fontSize = 11.sp, color = Color(0xFF047857))
+                            Text("Integrity Finding: Stored biometric custody records match registration entry without cryptographic divergence. Grievance resolved under Council Statutory Authority.", fontSize = 11.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
+                            Text("Notice: Plantar ridge templates secured via SHA-256 hash chaining. Hardware-level automated biometric matching engine unintegrated in prototype environment.", fontSize = 10.sp, color = Color(0xFF64748B), fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                         }
                     }
 

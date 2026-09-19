@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -129,10 +130,16 @@ fun SafeStartApp() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
+                .background(Color(0xFFF8FAFC)),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Material 3 AnimatedContent Transition Spec
-            AnimatedContent(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 1100.dp)
+            ) {
+                // Material 3 AnimatedContent Transition Spec
+                AnimatedContent(
                 targetState = currentWing,
                 transitionSpec = {
                     val isAuthTransition = initialState == AppWing.AUTH || targetState == AppWing.AUTH
@@ -305,4 +312,5 @@ fun SafeStartApp() {
             }
         }
     }
+}
 }

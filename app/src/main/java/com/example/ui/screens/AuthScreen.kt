@@ -735,35 +735,23 @@ fun AuthScreen(
                         } else {
                             // STEP 2 & 3: REQUEST SUBMITTED -> ENTER COUNCIL APPROVAL TOKEN & NEW PASSWORD
                             Surface(
-                                color = Color(0xFFECFDF5),
+                                color = Color(0xFFF0FDF4),
                                 shape = RoundedCornerShape(8.dp),
                                 border = BorderStroke(1.dp, Color(0xFF10B981))
                             ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(18.dp))
-                                        Text("REQUEST PENDING AT COUNCIL DOCKET: $fpSubmittedRequestId", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46))
+                                        Text("DOCKET REGISTERED: $fpSubmittedRequestId", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46))
                                     }
-                                    Text("Reason Recorded: \"$fpReason\"", fontSize = 11.sp, color = Color(0xFF047857))
-                                    Text("Government Medical Council can review and approve this from their Oversight portal.", fontSize = 11.sp, color = Color(0xFF047857))
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Button(
-                                        onClick = {
-                                            SafeStartRepository.approvePasswordReset(fpSubmittedRequestId!!)
-                                            fpApprovalTokenInput = "COUNCIL-APPRV-KEY-881"
-                                            Toast.makeText(context, "Council Key Auto-Approved for demonstration!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF047857)),
-                                        shape = RoundedCornerShape(6.dp),
-                                        modifier = Modifier.fillMaxWidth().height(36.dp)
-                                    ) {
-                                        Text("Simulate Medical Council Instant Approval", fontSize = 11.sp)
-                                    }
+                                    Text("Reason: \"$fpReason\"", fontSize = 11.sp, color = Color(0xFF047857))
+                                    Text("Status: PENDING REVIEW AT MEDICAL COUNCIL STATE DIRECTORATE", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF065F46))
+                                    Text("The Medical Council Oversight Officer must verify your statutory institutional credentials and issue a one-time cryptographic reset token (valid 15 minutes). Enter the issued token below to proceed.", fontSize = 10.5.sp, color = Color(0xFF047857))
                                 }
                             }
 
                             Text(
-                                text = "Step 2: Enter Council Approval Key & Create New Password",
+                                text = "Step 2: Enter Council Authorization Token & Create New Password",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TnDeepTeal
@@ -772,8 +760,8 @@ fun AuthScreen(
                             OutlinedTextField(
                                 value = fpApprovalTokenInput,
                                 onValueChange = { fpApprovalTokenInput = it },
-                                label = { Text("Government Medical Council Approval Token / Key") },
-                                placeholder = { Text("e.g. COUNCIL-APPRV-KEY-881") },
+                                label = { Text("Council Authorization Token (Single-Use)") },
+                                placeholder = { Text("e.g. COUNCIL-APPRV-XXXXXX") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -781,7 +769,7 @@ fun AuthScreen(
                             OutlinedTextField(
                                 value = fpNewPassword,
                                 onValueChange = { fpNewPassword = it },
-                                label = { Text("Create New Password") },
+                                label = { Text("Create New Password (Min 8 chars, 1 digit, 1 upper)") },
                                 visualTransformation = PasswordVisualTransformation(),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
@@ -798,7 +786,12 @@ fun AuthScreen(
 
                             Button(
                                 onClick = {
-                                    if (fpApprovalTokenInput.isEmpty()) {
+                                    val reqId = fpSubmittedRequestId
+                                    if (reqId == null) {
+                                        Toast.makeText(context, "No active reset docket found.", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (fpApprovalTokenInput.trim().isEmpty()) {
                                         Toast.makeText(context, "Council approval token is required!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
@@ -806,9 +799,20 @@ fun AuthScreen(
                                         Toast.makeText(context, "Passwords do not match or are empty!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
-                                    loginPassword = fpNewPassword
-                                    authMode = AuthMode.LOGIN
-                                    Toast.makeText(context, "New Password Created Successfully using Government Approval! Please Sign In.", Toast.LENGTH_LONG).show()
+
+                                    val resetResult = SafeStartRepository.completePasswordReset(
+                                        requestId = reqId,
+                                        tokenEntered = fpApprovalTokenInput.trim(),
+                                        newPassword = fpNewPassword
+                                    )
+
+                                    resetResult.onSuccess {
+                                        loginPassword = fpNewPassword
+                                        authMode = AuthMode.LOGIN
+                                        Toast.makeText(context, "Password updated successfully with Council authorization! Please Sign In.", Toast.LENGTH_LONG).show()
+                                    }.onFailure { err ->
+                                        Toast.makeText(context, "Authorization Failed: ${err.message}", Toast.LENGTH_LONG).show()
+                                    }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = TnPrimary),
                                 shape = RoundedCornerShape(8.dp),

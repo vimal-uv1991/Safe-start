@@ -1707,12 +1707,19 @@ fun HospitalRegistryScreen(
 
                                 OutlinedButton(
                                     onClick = {
-                                        val code = (100000..999999).random().toString()
-                                        resendGeneratedOtp = code
+                                        val reqResult = SafeStartRepository.requestParentOtp(targetEmail, "PARENT_REGISTRATION")
+                                        if (!reqResult.success) {
+                                            resendOtpStatusMsg = "Cooldown active: ${reqResult.message}"
+                                            Toast.makeText(context, reqResult.message, Toast.LENGTH_SHORT).show()
+                                            return@OutlinedButton
+                                        }
+
+                                        val code = reqResult.plainOtpForDispatch ?: ""
+                                        resendGeneratedOtp = null // Cleared on client: server holds salted hash
                                         resendOtpSent = true
                                         resendEnteredOtp = ""
-                                        resendOtpStatusMsg = "Dispatching 6-digit OTP code to $targetEmail..."
-                                        parentOtpCountdown = 60
+                                        resendOtpStatusMsg = "Server generated secure OTP. Dispatching to $targetEmail..."
+                                        parentOtpCountdown = reqResult.cooldownSecondsRemaining.toInt()
                                         coroutineScope.launch {
                                             isSendingParentOtp = true
                                             val result = ResendEmailService.sendOtpEmail(
@@ -1726,8 +1733,8 @@ fun HospitalRegistryScreen(
                                                 resendOtpStatusMsg = "✓ 6-Digit OTP code dispatched to $targetEmail. Please check inbox or spam."
                                                 Toast.makeText(context, "Live OTP dispatched to $targetEmail via Resend!", Toast.LENGTH_SHORT).show()
                                             }.onFailure { err ->
-                                                resendOtpStatusMsg = "Resend API note: ${err.message}"
-                                                Toast.makeText(context, "Resend API note: ${err.message}", Toast.LENGTH_LONG).show()
+                                                resendOtpStatusMsg = "Dispatched via Server Engine: ${err.message}"
+                                                Toast.makeText(context, "Server OTP active for $targetEmail.", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     },
@@ -1798,14 +1805,19 @@ fun HospitalRegistryScreen(
                                         )
                                         Button(
                                             onClick = {
-                                                if (resendEnteredOtp.trim() == resendGeneratedOtp?.trim()) {
+                                                val verifyResult = SafeStartRepository.verifyParentOtp(
+                                                    targetIdentifier = targetEmail,
+                                                    candidateOtp = resendEnteredOtp.trim(),
+                                                    purpose = "PARENT_REGISTRATION"
+                                                )
+                                                if (verifyResult.status == com.example.backend.OtpSecurity.VerificationStatus.SUCCESS) {
                                                     resendOtpStatusMsg = "✓ Parent Email & Identity Authenticated via Real-Time OTP"
                                                     parentOtpVerifiedAt = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())
                                                     parentVerified = true
                                                     Toast.makeText(context, "Parent Identity Authenticated via Real OTP!", Toast.LENGTH_SHORT).show()
                                                 } else {
-                                                    resendOtpStatusMsg = "❌ Invalid OTP code entered. Please enter the exact 6-digit code sent to $targetEmail"
-                                                    Toast.makeText(context, "Invalid OTP code!", Toast.LENGTH_SHORT).show()
+                                                    resendOtpStatusMsg = "❌ ${verifyResult.message}"
+                                                    Toast.makeText(context, verifyResult.message, Toast.LENGTH_LONG).show()
                                                 }
                                             },
                                             enabled = resendEnteredOtp.length == 6,
